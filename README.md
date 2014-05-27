@@ -6,7 +6,7 @@ a library that can convert amr to wav
 
 ##useage
 
-### 1.drag arm flder to your project.
+### 1.drag arm folder to your project.
 
 ### 2.include "amrFileCodec.h"
 
