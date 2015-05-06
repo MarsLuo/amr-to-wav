@@ -92,14 +92,47 @@ NSData * fuckAndroid3GP(NSData *data) {
     boxSize += 4;
     bis+=4;
     
-    int rawAmrDataLength=(size - boxSize);
+    int rawAmrDataLength = (size - boxSize);
+    char *audioBeginPointer = bis;
+    // 如果获取到的rawAmrDataLength为0，则说明无法从文件头中取到音频长度，需要手动取得音频长度
+    if (rawAmrDataLength<0) {
+        // 重新建立指针获取数据
+        char *dataBis = (char *)[data bytes];
+        // 确定是否进入语音数据
+        BOOL isBeginAudio = NO;
+        rawAmrDataLength = 0;
+        
+        while (dataBis) {
+            // 如果遇到了3c说明进入了音频数据中
+            if (*dataBis == 0x3c) {
+                isBeginAudio = YES;
+            }else {
+                if (isBeginAudio == YES) {
+                    //如果进入音频数据中，发现这一帧开头不是3c说明音频数据已经结束
+                    break;
+                }
+            }
+            
+            // 移动指针
+            if (isBeginAudio == NO) {
+                dataBis += 8;
+                audioBeginPointer = dataBis;
+            }else {
+                // 音频为32b一帧
+                dataBis+=32;
+                rawAmrDataLength += 32;
+            }
+        }
+        rawAmrDataLength -= 8;
+    }
+    
     int fullAmrDataLength = 6 + rawAmrDataLength;
     //char* amrData = new char[fullAmrDataLength];
-    NSMutableData *amrData = [[[NSMutableData alloc]initWithCapacity:fullAmrDataLength]autorelease];
+    NSMutableData *amrData = [[[NSMutableData alloc] initWithCapacity:fullAmrDataLength] autorelease];
     //memcpy(amrData,AMR_MAGIC_HEADER,6);
     //memcpy(amrData+6,bis,rawAmrDataLength);
     [amrData appendBytes:AMR_MAGIC_HEADER length:6];
-    [amrData appendBytes:bis length:rawAmrDataLength];
+    [amrData appendBytes:audioBeginPointer length:rawAmrDataLength];
     
     return amrData;    
 }
